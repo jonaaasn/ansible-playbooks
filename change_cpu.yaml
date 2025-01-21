@@ -6,4 +6,4 @@
   tasks:
     - name: Testausgabe anzeigen
       debug:
-        msg: "Das Playbook: "change_cpu.yaml" wurde erfolgreich ausgeführt!"
+        msg: "Das Playbook: \"change_cpu.yaml\" wurde erfolgreich ausgeführt!"
