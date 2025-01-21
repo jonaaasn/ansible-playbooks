@@ -1,21 +1,9 @@
 ---
-- name: Test Playbook for AWX and Camunda Integration
+- name: Einfaches Playbook für Testzwecke
   hosts: localhost
   gather_facts: no
 
   tasks:
-    - name: Execute a simple shell command
-      command: echo "Hello from Ansible!"
-      register: command_output
-
-    - name: Debug the command output
+    - name: Testausgabe anzeigen
       debug:
-        msg: "Command output: {{ command_output.stdout }}"
-
-    - name: Set a result variable
-      set_fact:
-        playbook_status: "SUCCESS"
-
-    - name: Output the playbook status
-      debug:
-        msg: "Playbook execution status: {{ playbook_status }}"
+        msg: "Das Playbook: "restart_system.yaml" wurde erfolgreich ausgeführt!"
