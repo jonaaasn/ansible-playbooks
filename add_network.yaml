@@ -1,0 +1,9 @@
+---
+- name: Einfaches Playbook für Testzwecke
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Testausgabe anzeigen
+      debug:
+        msg: "Das Playbook: "add_network.yaml" wurde erfolgreich ausgeführt!"
