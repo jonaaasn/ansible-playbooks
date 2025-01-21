@@ -6,4 +6,4 @@
   tasks:
     - name: Testausgabe anzeigen
       debug:
-        msg: "Das Playbook: "complete_process.yaml" wurde erfolgreich ausgeführt!"
+        msg: "Das Playbook: \"complete_process.yaml\" wurde erfolgreich ausgeführt!"
