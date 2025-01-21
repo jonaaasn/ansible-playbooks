@@ -6,5 +6,5 @@
   tasks:
     - name: Testausgabe anzeigen
       debug:
-        msg: "Das Playbook: "create_snapshot.yaml" wurde erfolgreich ausgeführt!"
+        msg: "Das Playbook: \"create_snapshot.yaml\" wurde erfolgreich ausgeführt!"
 
