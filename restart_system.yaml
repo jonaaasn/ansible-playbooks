@@ -6,4 +6,4 @@
   tasks:
     - name: Testausgabe anzeigen
       debug:
-        msg: "Das Playbook: "restart_system.yaml" wurde erfolgreich ausgeführt!"
+        msg: "Das Playbook: \"restart_system.yaml\" wurde erfolgreich ausgeführt!"
