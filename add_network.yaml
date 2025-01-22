@@ -1,9 +1,23 @@
 ---
-- name: Einfaches Playbook für Testzwecke
+- name: Add a new network adapter to a VM
   hosts: localhost
-  gather_facts: no
-
+  gather_facts: false
+  vars:
+    vm_id: null # Dynamisch übergebene VM-ID
   tasks:
-    - name: Testausgabe anzeigen
+    - name: Validate input variables
+      fail:
+        msg: "vm_id must be provided"
+      when: vm_id is not defined
+
+    - name: Add network adapter entry to the database
+      postgresql_query:
+        db: vminventory
+        login_user: jonas
+        login_password: admin
+        query: "INSERT INTO Netzwerkadapter (vm_id) VALUES ({{ vm_id }})"
+      register: result
+
+    - name: Confirm network adapter addition
       debug:
-        msg: "Das Playbook: \"add_network.yaml\" wurde erfolgreich ausgeführt!"
+        msg: "Added a new network adapter to VM ID {{ vm_id }}"
