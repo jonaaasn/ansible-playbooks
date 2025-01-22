@@ -2,12 +2,6 @@
 - name: Report on completed process
   hosts: localhost
   gather_facts: false
-  vars:
-    changes:
-      - { task: "Changed CPU count", result: "Success", details: "CPU count set to 8 for VM ID 1" }
-      - { task: "Changed RAM size", result: "Success", details: "RAM size set to 16GB for VM ID 1" }
-      - { task: "Added storage", result: "Success", details: "Added a 200GB disk to VM ID 1" }
-      - { task: "Added network adapter", result: "Failed", details: "Network adapter addition failed due to permissions" }
   tasks:
     - name: Display task summary
       debug:
