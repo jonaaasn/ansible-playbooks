@@ -1,9 +1,19 @@
 ---
-- name: Einfaches Playbook für Testzwecke
+- name: Change CPU count for a VM
   hosts: localhost
-  gather_facts: no
-
+  gather_facts: false
+  vars:
+    vm_id: 1         # ID der VM
+    new_cpu_count: 8 # Neue Anzahl der CPUs
   tasks:
-    - name: Testausgabe anzeigen
+    - name: Update CPU count in the database
+      postgresql_query:
+        db: vminventory
+        login_user: jonas
+        login_password: admin
+        query: "UPDATE VMs SET cpu_count = {{ new_cpu_count }} WHERE vm_id = {{ vm_id }}"
+      register: result
+
+    - name: Confirm CPU update
       debug:
-        msg: "Das Playbook: \"change_cpu.yaml\" wurde erfolgreich ausgeführt!"
+        msg: "Updated CPU count for VM ID {{ vm_id }} to {{ new_cpu_count }}"
