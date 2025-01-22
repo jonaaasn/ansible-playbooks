@@ -1,9 +1,8 @@
 ---
-- name: Einfaches Playbook für Testzwecke
+- name: Simulate a system restart
   hosts: localhost
-  gather_facts: no
-
+  gather_facts: false
   tasks:
-    - name: Testausgabe anzeigen
+    - name: Simulate restart
       debug:
-        msg: "Das Playbook: \"restart_system.yaml\" wurde erfolgreich ausgeführt!"
+        msg: "System successfully restarted"
