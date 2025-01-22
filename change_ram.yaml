@@ -1,9 +1,24 @@
 ---
-- name: Einfaches Playbook für Testzwecke
+- name: Change RAM size for a VM
   hosts: localhost
-  gather_facts: no
-
+  gather_facts: false
+  vars:
+    vm_id: null        # Dynamisch übergebene VM-ID
+    new_ram_size: null # Dynamisch übergebene RAM-Größe
   tasks:
-    - name: Testausgabe anzeigen
+    - name: Validate input variables
+      fail:
+        msg: "vm_id and new_ram_size must be provided"
+      when: vm_id is not defined or new_ram_size is not defined
+
+    - name: Update RAM size in the database
+      postgresql_query:
+        db: vminventory
+        login_user: jonas
+        login_password: admin
+        query: "UPDATE VMs SET ram_size = {{ new_ram_size }} WHERE vm_id = {{ vm_id }}"
+      register: result
+
+    - name: Confirm RAM update
       debug:
-        msg: "Das Playbook: \"change_ram.yaml\" wurde erfolgreich ausgeführt!"
+        msg: "Updated RAM size for VM ID {{ vm_id }} to {{ new_ram_size }} GB"
