@@ -1,10 +1,53 @@
 ---
-- name: Einfaches Playbook für Testzwecke
+- name: Create a snapshot of a VM
   hosts: localhost
-  gather_facts: no
-
+  gather_facts: false
+  vars:
+    vm_id: null # Dynamisch übergebene VM-ID
   tasks:
-    - name: Testausgabe anzeigen
-      debug:
-        msg: "Das Playbook: \"create_snapshot.yaml\" wurde erfolgreich ausgeführt!"
+    - name: Validate input variables
+      fail:
+        msg: "vm_id must be provided"
+      when: vm_id is not defined
 
+    - name: Fetch VM details
+      postgresql_query:
+        db: vminventory
+        login_user: jonas
+        login_password: admin
+        query: |
+          SELECT 
+            vm_id, 
+            cpu_count, 
+            ram_size, 
+            (SELECT json_agg(d) FROM (SELECT disk_id, disk_size FROM Disks WHERE vm_id = {{ vm_id }}) d) AS disks,
+            (SELECT COUNT(*) FROM Netzwerkadapter WHERE vm_id = {{ vm_id }}) AS adapters
+          FROM VMs
+          WHERE vm_id = {{ vm_id }}
+      register: vm_details
+
+    - name: Validate VM existence
+      fail:
+        msg: "VM with ID {{ vm_id }} does not exist"
+      when: vm_details.query_result | length == 0
+
+    - name: Insert snapshot into the database
+      postgresql_query:
+        db: vminventory
+        login_user: jonas
+        login_password: admin
+        query: |
+          INSERT INTO Snapshots (vm_id, cpu_count, ram_size, disks, adapters, created_at)
+          VALUES (
+            {{ vm_id }},
+            {{ vm_details.query_result[0].cpu_count }},
+            {{ vm_details.query_result[0].ram_size }},
+            '{{ vm_details.query_result[0].disks | to_json }}',
+            {{ vm_details.query_result[0].adapters }},
+            NOW()
+          )
+      register: result
+
+    - name: Confirm snapshot creation
+      debug:
+        msg: "Snapshot created for VM ID {{ vm_id }} at {{ result.query_result }}"
