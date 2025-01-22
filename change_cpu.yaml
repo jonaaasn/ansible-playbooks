@@ -3,9 +3,14 @@
   hosts: localhost
   gather_facts: false
   vars:
-    vm_id: 1         # ID der VM
-    new_cpu_count: 8 # Neue Anzahl der CPUs
+    vm_id: null         # Dynamisch übergebene VM-ID
+    new_cpu_count: null # Dynamisch übergebene CPU-Anzahl
   tasks:
+    - name: Validate input variables
+      fail:
+        msg: "vm_id and new_cpu_count must be provided"
+      when: vm_id is not defined or new_cpu_count is not defined
+
     - name: Update CPU count in the database
       postgresql_query:
         db: vminventory
@@ -17,3 +22,4 @@
     - name: Confirm CPU update
       debug:
         msg: "Updated CPU count for VM ID {{ vm_id }} to {{ new_cpu_count }}"
+
