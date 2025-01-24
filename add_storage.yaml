@@ -2,6 +2,8 @@
 - name: Add a new disk to a VM
   hosts: localhost
   gather_facts: false
+  collections:
+    - community.postgresql
   vars:
     vm_id: null       # Dynamisch übergebene VM-ID
     disk_size: null   # Dynamisch übergebene Größe der Festplatte
@@ -12,16 +14,12 @@
       when: vm_id is not defined or disk_size is not defined
 
     - name: Add disk entry to the database
-      postgresql_query:
+      community.postgresql.postgresql_query:
         db: vminventory
         login_user: jonas
         login_password: admin
         query: "INSERT INTO Disks (vm_id, disk_size) VALUES ({{ vm_id }}, {{ disk_size }})"
-        autocommit: yes
       register: result
-      async: 30  # Setze Timeout auf 30 Sekunden
-      poll: 1
-
 
     - name: Confirm disk addition
       debug:
