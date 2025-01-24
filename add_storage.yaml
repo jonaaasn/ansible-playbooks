@@ -17,7 +17,11 @@
         login_user: jonas
         login_password: admin
         query: "INSERT INTO Disks (vm_id, disk_size) VALUES ({{ vm_id }}, {{ disk_size }})"
+        autocommit: yes
       register: result
+      async: 30  # Setze Timeout auf 30 Sekunden
+      poll: 1
+
 
     - name: Confirm disk addition
       debug:
