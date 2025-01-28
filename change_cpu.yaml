@@ -29,7 +29,7 @@
               Content-Type: "application/json"
             body: |
               {
-                "name": "cpu_change_complete",
+                "name": "cpu_change_completed",
                 "processVariables": {
                   "vm_id": { "value": "{{ vm_id }}", "type": "String" },
                   "cpu_count": { "value": "{{ new_cpu_count }}", "type": "Integer" },
