@@ -2,6 +2,8 @@
 - name: Add a new network adapter to a VM
   hosts: localhost
   gather_facts: false
+  collections:
+    - community.postgresql
   vars:
     vm_id: null # Dynamisch übergebene VM-ID
   tasks:
@@ -10,14 +12,51 @@
         msg: "vm_id must be provided"
       when: vm_id is not defined
 
-    - name: Add network adapter entry to the database
-      postgresql_query:
-        db: vminventory
-        login_user: jonas
-        login_password: admin
-        query: "INSERT INTO Netzwerkadapter (vm_id) VALUES ({{ vm_id }})"
-      register: result
+    - block:
+        - name: Add network adapter entry to the database
+          community.postgresql.postgresql_query:
+            db: vminventory
+            login_user: jonas
+            login_password: admin
+            query: "INSERT INTO Netzwerkadapter (vm_id) VALUES ({{ vm_id }})"
+          register: result
 
-    - name: Confirm network adapter addition
-      debug:
-        msg: "Added a new network adapter to VM ID {{ vm_id }}"
+        - name: Signal successful completion to Camunda
+          when: result.failed is not defined or not result.failed
+          uri:
+            url: "http://camunda-host:8080/engine-rest/signal"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: |
+              {
+                "name": "network_add_completed",
+                "processVariables": {
+                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
+                  "job_status": { "value": "success", "type": "String" }
+                }
+              }
+            body_format: json
+            status_code: 204
+
+      rescue:
+        - name: Signal failure to Camunda
+          uri:
+            url: "http://camunda-host:8080/engine-rest/signal"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: |
+              {
+                "name": "network_add_failed",
+                "processVariables": {
+                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
+                  "error_message": { "value": "Failed to add network adapter for VM ID {{ vm_id }}", "type": "String" }
+                }
+              }
+            body_format: json
+            status_code: 204
+
+        - name: Log failure message
+          debug:
+            msg: "Failed to add network adapter for VM ID {{ vm_id }}. Signal sent to Camunda."
