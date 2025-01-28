@@ -2,6 +2,8 @@
 - name: Change CPU count for a VM
   hosts: localhost
   gather_facts: false
+  collections:
+    - community.postgresql
   vars:
     vm_id: null         # Dynamisch übergebene VM-ID
     new_cpu_count: null # Dynamisch übergebene CPU-Anzahl
