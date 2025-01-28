@@ -13,14 +13,52 @@
         msg: "vm_id and disk_size must be provided"
       when: vm_id is not defined or disk_size is not defined
 
-    - name: Add disk entry to the database
-      community.postgresql.postgresql_query:
-        db: vminventory
-        login_user: jonas
-        login_password: admin
-        query: "INSERT INTO Disks (vm_id, disk_size) VALUES ({{ vm_id }}, {{ disk_size }})"
-      register: result
+    - block:
+        - name: Add disk entry to the database
+          community.postgresql.postgresql_query:
+            db: vminventory
+            login_user: jonas
+            login_password: admin
+            query: "INSERT INTO Disks (vm_id, disk_size) VALUES ({{ vm_id }}, {{ disk_size }})"
+          register: result
 
-    - name: Confirm disk addition
-      debug:
-        msg: "Added a new disk with {{ disk_size }} GB to VM ID {{ vm_id }}"
+        - name: Signal successful completion to Camunda
+          when: result.failed is not defined or not result.failed
+          uri:
+            url: "http://camunda-host:8080/engine-rest/signal"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: |
+              {
+                "name": "storage_add_completed",
+                "processVariables": {
+                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
+                  "disk_size": { "value": "{{ disk_size }}", "type": "Integer" },
+                  "job_status": { "value": "success", "type": "String" }
+                }
+              }
+            body_format: json
+            status_code: 204
+
+      rescue:
+        - name: Signal failure to Camunda
+          uri:
+            url: "http://camunda-host:8080/engine-rest/signal"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: |
+              {
+                "name": "storage_add_failed",
+                "processVariables": {
+                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
+                  "error_message": { "value": "Failed to add storage for VM ID {{ vm_id }}", "type": "String" }
+                }
+              }
+            body_format: json
+            status_code: 204
+
+        - name: Log failure message
+          debug:
+            msg: "Failed to add storage for VM ID {{ vm_id }}. Signal sent to Camunda."
