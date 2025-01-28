@@ -20,12 +20,27 @@
             query: "UPDATE VMs SET cpu_count = {{ new_cpu_count }} WHERE vm_id = {{ vm_id }}"
           register: result
 
-        - name: Confirm CPU update
-          debug:
-            msg: "Updated CPU count for VM ID {{ vm_id }} to {{ new_cpu_count }}"
-      
+        - name: Signal successful completion to Camunda
+          when: result.failed is not defined or not result.failed
+          uri:
+            url: "http://camunda-host:8080/engine-rest/signal"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: |
+              {
+                "name": "cpu_change_complete",
+                "processVariables": {
+                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
+                  "cpu_count": { "value": "{{ new_cpu_count }}", "type": "Integer" },
+                  "job_status": { "value": "success", "type": "String" }
+                }
+              }
+            body_format: json
+            status_code: 204
+
       rescue:
-        - name: Send signal to Camunda (CPU Change Failed)
+        - name: Signal failure to Camunda
           uri:
             url: "http://camunda-host:8080/engine-rest/signal"
             method: POST
