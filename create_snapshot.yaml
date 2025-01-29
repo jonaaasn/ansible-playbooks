@@ -2,6 +2,8 @@
 - name: Create a snapshot of a VM
   hosts: localhost
   gather_facts: false
+  collections:
+    - community.postgresql
   vars:
     vm_id: null # Dynamisch übergebene VM-ID
   tasks:
@@ -10,44 +12,88 @@
         msg: "vm_id must be provided"
       when: vm_id is not defined
 
-    - name: Fetch VM details
-      postgresql_query:
-        db: vminventory
-        login_user: jonas
-        login_password: admin
-        query: |
-          SELECT 
-            vm_id, 
-            cpu_count, 
-            ram_size, 
-            (SELECT json_agg(d) FROM (SELECT disk_id, disk_size FROM Disks WHERE vm_id = {{ vm_id }}) d) AS disks,
-            (SELECT COUNT(*) FROM Netzwerkadapter WHERE vm_id = {{ vm_id }}) AS adapters
-          FROM VMs
-          WHERE vm_id = {{ vm_id }}
-      register: vm_details
+    - block:
+        - name: Fetch VM details
+          community.postgresql.postgresql_query:
+            db: vminventory
+            login_user: jonas
+            login_password: admin
+            query: |
+              SELECT 
+                vm_id, 
+                cpu_count, 
+                ram_size, 
+                (SELECT json_agg(d) FROM (SELECT disk_id, disk_size FROM Disks WHERE vm_id = {{ vm_id }}) d) AS disks,
+                (SELECT COUNT(*) FROM Netzwerkadapter WHERE vm_id = {{ vm_id }}) AS adapters
+              FROM VMs
+              WHERE vm_id = {{ vm_id }}
+          register: vm_details
 
-    - name: Validate VM existence
-      fail:
-        msg: "VM with ID {{ vm_id }} does not exist"
-      when: vm_details.query_result | length == 0
+        - name: Validate VM existence
+          fail:
+            msg: "VM with ID {{ vm_id }} does not exist"
+          when: vm_details.query_result | length == 0
 
-    - name: Insert snapshot into the database
-      postgresql_query:
-        db: vminventory
-        login_user: jonas
-        login_password: admin
-        query: |
-          INSERT INTO Snapshots (vm_id, cpu_count, ram_size, disks, adapters, created_at)
-          VALUES (
-            {{ vm_id }},
-            {{ vm_details.query_result[0].cpu_count }},
-            {{ vm_details.query_result[0].ram_size }},
-            '{{ vm_details.query_result[0].disks | to_json }}',
-            {{ vm_details.query_result[0].adapters }},
-            NOW()
-          )
-      register: result
+        - name: Insert snapshot into the database
+          community.postgresql.postgresql_query:
+            db: vminventory
+            login_user: jonas
+            login_password: admin
+            query: |
+              INSERT INTO Snapshots (vm_id, cpu_count, ram_size, disks, adapters, created_at)
+              VALUES (
+                {{ vm_id }},
+                {{ vm_details.query_result[0].cpu_count }},
+                {{ vm_details.query_result[0].ram_size }},
+                '{{ vm_details.query_result[0].disks | to_json }}',
+                {{ vm_details.query_result[0].adapters }},
+                NOW()
+              )
+          register: result
 
-    - name: Confirm snapshot creation
-      debug:
-        msg: "Snapshot created for VM ID {{ vm_id }} at {{ result.query_result }}"
+        - name: Confirm snapshot creation
+          debug:
+            msg: "Snapshot created for VM ID {{ vm_id }} successfully."
+
+        - name: Signal successful completion to Camunda
+          uri:
+            url: "http://camunda-host:8080/engine-rest/signal"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: |
+              {
+                "name": "create_snapshot_completed",
+                "processVariables": {
+                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
+                  "cpu_count": { "value": "{{ vm_details.query_result[0].cpu_count }}", "type": "Integer" },
+                  "ram_size": { "value": "{{ vm_details.query_result[0].ram_size }}", "type": "Integer" },
+                  "disks": { "value": "{{ vm_details.query_result[0].disks | to_json }}", "type": "String" },
+                  "adapters": { "value": "{{ vm_details.query_result[0].adapters }}", "type": "Integer" },
+                  "job_status": { "value": "success", "type": "String" }
+                }
+              }
+            body_format: json
+            status_code: 204
+
+      rescue:
+        - name: Signal failure to Camunda
+          uri:
+            url: "http://camunda-host:8080/engine-rest/signal"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: |
+              {
+                "name": "create_snapshot_failed",
+                "processVariables": {
+                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
+                  "error_message": { "value": "Snapshot creation failed for VM ID {{ vm_id }}", "type": "String" }
+                }
+              }
+            body_format: json
+            status_code: 204
+
+        - name: Log failure message
+          debug:
+            msg: "Snapshot creation failed for VM ID {{ vm_id }}. Signal sent to Camunda."
