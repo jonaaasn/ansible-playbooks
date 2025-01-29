@@ -1,0 +1,122 @@
+---
+- name: Restore the last snapshot for a VM
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - community.postgresql
+  vars:
+    vm_id: null # Dynamisch übergebene VM-ID
+  tasks:
+    - name: Validate input variables
+      fail:
+        msg: "vm_id must be provided"
+      when: vm_id is not defined
+
+    - block:
+        - name: Fetch the latest snapshot for the VM
+          community.postgresql.postgresql_query:
+            db: vminventory
+            login_user: jonas
+            login_password: admin
+            query: |
+              SELECT 
+                cpu_count, 
+                ram_size, 
+                disks, 
+                adapters
+              FROM Snapshots
+              WHERE vm_id = {{ vm_id }}
+              ORDER BY created_at DESC
+              LIMIT 1
+          register: snapshot_details
+
+        - name: Validate snapshot existence
+          fail:
+            msg: "No snapshot found for VM ID {{ vm_id }}"
+          when: snapshot_details.query_result | length == 0
+
+        - name: Restore CPU count
+          community.postgresql.postgresql_query:
+            db: vminventory
+            login_user: jonas
+            login_password: admin
+            query: "UPDATE VMs SET cpu_count = {{ snapshot_details.query_result[0].cpu_count }} WHERE vm_id = {{ vm_id }}"
+        
+        - name: Restore RAM size
+          community.postgresql.postgresql_query:
+            db: vminventory
+            login_user: jonas
+            login_password: admin
+            query: "UPDATE VMs SET ram_size = {{ snapshot_details.query_result[0].ram_size }} WHERE vm_id = {{ vm_id }}"
+
+        - name: Restore Disks (Delete old, Insert new)
+          community.postgresql.postgresql_query:
+            db: vminventory
+            login_user: jonas
+            login_password: admin
+            query: |
+              DELETE FROM Disks WHERE vm_id = {{ vm_id }};
+              INSERT INTO Disks (vm_id, disk_id, disk_size)
+              SELECT 
+                {{ vm_id }}, 
+                (d->>'disk_id')::INTEGER, 
+                (d->>'disk_size')::INTEGER
+              FROM jsonb_array_elements('{{ snapshot_details.query_result[0].disks }}'::jsonb) d;
+
+        - name: Restore Network Adapters (Delete old, Insert new)
+          community.postgresql.postgresql_query:
+            db: vminventory
+            login_user: jonas
+            login_password: admin
+            query: |
+              DELETE FROM Netzwerkadapter WHERE vm_id = {{ vm_id }};
+              INSERT INTO Netzwerkadapter (vm_id)
+              SELECT {{ vm_id }} FROM generate_series(1, {{ snapshot_details.query_result[0].adapters }});
+
+        - name: Confirm restoration
+          debug:
+            msg: "Snapshot successfully restored for VM ID {{ vm_id }}"
+
+        - name: Signal successful restoration to Camunda
+          uri:
+            url: "http://camunda-host:8080/engine-rest/signal"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: |
+              {
+                "name": "restore_snapshot_completed",
+                "processVariables": {
+                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
+                  "cpu_count": { "value": "{{ snapshot_details.query_result[0].cpu_count }}", "type": "Integer" },
+                  "ram_size": { "value": "{{ snapshot_details.query_result[0].ram_size }}", "type": "Integer" },
+                  "disks": { "value": "{{ snapshot_details.query_result[0].disks | to_json }}", "type": "String" },
+                  "adapters": { "value": "{{ snapshot_details.query_result[0].adapters }}", "type": "Integer" },
+                  "job_status": { "value": "success", "type": "String" }
+                }
+              }
+            body_format: json
+            status_code: 204
+
+      rescue:
+        - name: Signal failure to Camunda
+          uri:
+            url: "http://camunda-host:8080/engine-rest/signal"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: |
+              {
+                "name": "restore_snapshot_failed",
+                "processVariables": {
+                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
+                  "error_message": { "value": "Failed to restore snapshot for VM ID {{ vm_id }}", "type": "String" }
+                }
+              }
+            body_format: json
+            status_code: 204
+
+        - name: Log failure message
+          debug:
+            msg: "Failed to restore snapshot for VM ID {{ vm_id }}. Signal sent to Camunda."
+
