@@ -79,7 +79,7 @@
 
         - name: Signal successful restoration to Camunda
           uri:
-            url: "http://camunda-host:8080/engine-rest/signal"
+            url: "http://localhost:8080/engine-rest/signal"
             method: POST
             headers:
               Content-Type: "application/json"
@@ -101,7 +101,7 @@
       rescue:
         - name: Signal failure to Camunda
           uri:
-            url: "http://camunda-host:8080/engine-rest/signal"
+            url: "http://localhost:8080/engine-rest/signal"
             method: POST
             headers:
               Content-Type: "application/json"
