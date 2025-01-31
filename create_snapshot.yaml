@@ -4,8 +4,10 @@
   gather_facts: false
   collections:
     - community.postgresql
+
   vars:
     vm_id: null  # Dynamisch übergebene VM-ID
+
   tasks:
     - name: Validate input variables
       fail:
@@ -28,7 +30,7 @@
           - "adapters: {{ vm_details.query_result[0].adapters | default('NOT SET') }}"
 
     - block:
-        - name: Fetch VM details
+        - name: Check database connection
           community.postgresql.postgresql_query:
             db: "vminventory"
             login_user: "jonas"
@@ -37,6 +39,14 @@
             login_port: 5432
             query: "SELECT 1;"
           register: db_test
+
+        - name: Fetch VM details
+          community.postgresql.postgresql_query:
+            db: "vminventory"
+            login_user: "jonas"
+            login_password: "admin"
+            login_host: "10.0.2.15"
+            login_port: 5432
             query: |
               SELECT 
                 vm_id, 
@@ -45,15 +55,9 @@
                 (SELECT json_agg(d) FROM (SELECT disk_id, disk_size FROM Disks WHERE vm_id = {{ vm_id }}) d) AS disks,
                 (SELECT COUNT(*) FROM Netzwerkadapter WHERE vm_id = {{ vm_id }}) AS adapters
               FROM VMs
-              WHERE vm_id = {{ vm_id }}
+              WHERE vm_id = {{ vm_id }};
           register: vm_details
 
-        - name: Debug fetched VM details
-          debug:
-            var: vm_details
-
-
-        # Debugging: Überprüfen der zurückgegebenen Werte aus der Datenbank
         - name: Debug fetched VM details
           debug:
             var: vm_details.query_result
@@ -65,9 +69,11 @@
 
         - name: Insert snapshot into the database
           community.postgresql.postgresql_query:
-            db: vminventory
-            login_user: jonas
-            login_password: admin
+            db: "vminventory"
+            login_user: "jonas"
+            login_password: "admin"
+            login_host: "10.0.2.15"
+            login_port: 5432
             query: |
               INSERT INTO Snapshots (vm_id, cpu_count, ram_size, disks, adapters, created_at)
               VALUES (
@@ -77,7 +83,7 @@
                 '{{ vm_details.query_result[0].disks | to_json }}',
                 {{ vm_details.query_result[0].adapters }},
                 NOW()
-              )
+              );
           register: result
 
         - name: Confirm snapshot creation
@@ -90,13 +96,10 @@
             method: POST
             headers:
               Content-Type: "application/json"
-            body: |
-              {
-                "name": "create_snapshot_completed"
-              }
             body_format: json
+            body:
+              name: "create_snapshot_completed"
             status_code: 204
-
 
       rescue:
         - name: Signal failure to Camunda
@@ -105,17 +108,17 @@
             method: POST
             headers:
               Content-Type: "application/json"
-            body: |
-              {
-                "name": "create_snapshot_failed",
-                "processVariables": {
-                  "vm_id": { "value": "{{ vm_id | default('UNKNOWN') }}", "type": "String" },
-                  "error_message": { "value": "Snapshot creation failed for VM ID {{ vm_id | default('UNKNOWN') }}", "type": "String" }
-                }
-              }
             body_format: json
+            body:
+              name: "create_snapshot_failed"
+              processVariables:
+                vm_id:
+                  value: "{{ vm_id | default('UNKNOWN') }}"
+                  type: "String"
+                error_message:
+                  value: "Snapshot creation failed for VM ID {{ vm_id | default('UNKNOWN') }}"
+                  type: "String"
             status_code: 204
-
 
         - name: Log failure message
           debug:
