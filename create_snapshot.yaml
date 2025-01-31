@@ -18,6 +18,8 @@
             db: vminventory
             login_user: jonas
             login_password: admin
+            login_host: 127.0.0.1
+            login_port: 5432
             query: |
               SELECT 
                 vm_id, 
@@ -28,6 +30,7 @@
               FROM VMs
               WHERE vm_id = {{ vm_id }}
           register: vm_details
+
 
         - name: Validate VM existence
           fail:
