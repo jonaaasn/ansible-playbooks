@@ -46,6 +46,11 @@
               WHERE vm_id = {{ vm_id }}
           register: vm_details
 
+        - name: Debug fetched VM details
+          debug:
+            var: vm_details
+
+
         # Debugging: Überprüfen der zurückgegebenen Werte aus der Datenbank
         - name: Debug fetched VM details
           debug:
