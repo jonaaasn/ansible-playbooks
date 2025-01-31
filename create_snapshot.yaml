@@ -5,12 +5,27 @@
   collections:
     - community.postgresql
   vars:
-    vm_id: null # Dynamisch übergebene VM-ID
+    vm_id: null  # Dynamisch übergebene VM-ID
   tasks:
     - name: Validate input variables
       fail:
         msg: "vm_id must be provided"
-      when: vm_id is not defined
+      when: vm_id is not defined or vm_id | trim == ""
+
+    # Debugging: Zeigt alle Ansible-Facts
+    - name: Debug all variables received
+      debug:
+        var: ansible_facts
+
+    # Debugging: Zeigt alle wichtigen Variablen
+    - name: Debug all used variables
+      debug:
+        msg:
+          - "vm_id: {{ vm_id | default('NOT SET') }}"
+          - "cpu_count: {{ vm_details.query_result[0].cpu_count | default('NOT SET') }}"
+          - "ram_size: {{ vm_details.query_result[0].ram_size | default('NOT SET') }}"
+          - "disks: {{ vm_details.query_result[0].disks | default('NOT SET') }}"
+          - "adapters: {{ vm_details.query_result[0].adapters | default('NOT SET') }}"
 
     - block:
         - name: Fetch VM details
@@ -31,6 +46,10 @@
               WHERE vm_id = {{ vm_id }}
           register: vm_details
 
+        # Debugging: Überprüfen der zurückgegebenen Werte aus der Datenbank
+        - name: Debug fetched VM details
+          debug:
+            var: vm_details.query_result
 
         - name: Validate VM existence
           fail:
@@ -90,8 +109,8 @@
               {
                 "name": "create_snapshot_failed",
                 "processVariables": {
-                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
-                  "error_message": { "value": "Snapshot creation failed for VM ID {{ vm_id }}", "type": "String" }
+                  "vm_id": { "value": "{{ vm_id | default('UNKNOWN') }}", "type": "String" },
+                  "error_message": { "value": "Snapshot creation failed for VM ID {{ vm_id | default('UNKNOWN') }}", "type": "String" }
                 }
               }
             body_format: json
@@ -99,4 +118,4 @@
 
         - name: Log failure message
           debug:
-            msg: "Snapshot creation failed for VM ID {{ vm_id }}. Signal sent to Camunda."
+            msg: "Snapshot creation failed for VM ID {{ vm_id | default('UNKNOWN') }}. Signal sent to Camunda."
