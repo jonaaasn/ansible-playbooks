@@ -84,21 +84,13 @@
 
         - name: Signal successful completion to Camunda
           uri:
-            url: "http://localhost:8080/engine-rest/signal"
+            url: "http://127.0.0.1:8080/engine-rest/signal"
             method: POST
             headers:
               Content-Type: "application/json"
             body: |
               {
-                "name": "create_snapshot_completed",
-                "processVariables": {
-                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
-                  "cpu_count": { "value": "{{ vm_details.query_result[0].cpu_count }}", "type": "Integer" },
-                  "ram_size": { "value": "{{ vm_details.query_result[0].ram_size }}", "type": "Integer" },
-                  "disks": { "value": "{{ vm_details.query_result[0].disks | to_json }}", "type": "String" },
-                  "adapters": { "value": "{{ vm_details.query_result[0].adapters }}", "type": "Integer" },
-                  "job_status": { "value": "success", "type": "String" }
-                }
+                "name": "create_snapshot_completed"
               }
             body_format: json
             status_code: 204
