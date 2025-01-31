@@ -30,11 +30,13 @@
     - block:
         - name: Fetch VM details
           community.postgresql.postgresql_query:
-            db: vminventory
-            login_user: jonas
-            login_password: admin
-            login_host: 127.0.0.1
+            db: "vminventory"
+            login_user: "jonas"
+            login_password: "admin"
+            login_host: "10.0.2.15"  # IP-Adresse deines PostgreSQL-Servers
             login_port: 5432
+            query: "SELECT 1;"
+          register: db_test
             query: |
               SELECT 
                 vm_id, 
