@@ -1,4 +1,4 @@
-age---
+---
 - name: Create a snapshot of a VM
   hosts: localhost
   gather_facts: false
@@ -7,12 +7,13 @@ age---
 
   vars:
     vm_id: null  # Dynamisch übergebene VM-ID
+    process_instance_id: null  # Dynamisch übergebene Process Instance ID
 
   tasks:
     - name: Validate input variables
       fail:
-        msg: "vm_id must be provided"
-      when: vm_id is not defined or vm_id | trim == ""
+        msg: "vm_id and process_instance_id must be provided"
+      when: vm_id is not defined or vm_id | trim == "" or process_instance_id is not defined or process_instance_id | trim == ""
 
     # Debugging: Zeigt alle Ansible-Facts
     - name: Debug all variables received
@@ -24,6 +25,7 @@ age---
       debug:
         msg:
           - "vm_id: {{ vm_id | default('NOT SET') }}"
+          - "process_instance_id: {{ process_instance_id | default('NOT SET') }}"
           - "cpu_count: {{ vm_details.query_result[0].cpu_count | default('NOT SET') }}"
           - "ram_size: {{ vm_details.query_result[0].ram_size | default('NOT SET') }}"
           - "disks: {{ vm_details.query_result[0].disks | default('NOT SET') }}"
@@ -35,7 +37,7 @@ age---
             db: "vminventory"
             login_user: "jonas"
             login_password: "admin"
-            login_host: "10.0.2.15"  # IP-Adresse deines PostgreSQL-Servers
+            login_host: "10.0.2.15"
             login_port: 5432
             query: "SELECT 1;"
           register: db_test
@@ -98,7 +100,8 @@ age---
               Content-Type: "application/json"
             body_format: json
             body:
-              name: "create_snapshot_completed"
+              messageName: "create_snapshot_completed"
+              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
       rescue:
@@ -110,7 +113,8 @@ age---
               Content-Type: "application/json"
             body_format: json
             body:
-              name: "create_snapshot_failed"
+              messageName: "create_snapshot_failed"
+              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
         - name: Log failure message
