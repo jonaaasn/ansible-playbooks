@@ -1,4 +1,4 @@
----
+age---
 - name: Create a snapshot of a VM
   hosts: localhost
   gather_facts: false
@@ -92,7 +92,7 @@
 
         - name: Signal successful completion to Camunda
           uri:
-            url: "http://10.0.2.15:8080/engine-rest/signal"
+            url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
             headers:
               Content-Type: "application/json"
@@ -124,7 +124,7 @@
       rescue:
         - name: Signal failure to Camunda
           uri:
-            url: "http://10.0.2.15:8080/engine-rest/signal"
+            url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
             headers:
               Content-Type: "application/json"
