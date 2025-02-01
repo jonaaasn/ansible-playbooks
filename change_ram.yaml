@@ -4,14 +4,17 @@
   gather_facts: false
   collections:
     - community.postgresql
+
   vars:
-    vm_id: null        # Dynamisch übergebene VM-ID
-    new_ram_size: null # Dynamisch übergebene RAM-Größe
+    vm_id: null
+    new_ram_size: null
+    process_instance_id: null
+
   tasks:
     - name: Validate input variables
       fail:
-        msg: "vm_id and new_ram_size must be provided"
-      when: vm_id is not defined or new_ram_size is not defined
+        msg: "vm_id, new_ram_size, and process_instance_id must be provided"
+      when: vm_id is not defined or new_ram_size is not defined or process_instance_id is not defined
 
     - block:
         - name: Update RAM size in the database
@@ -22,43 +25,35 @@
             query: "UPDATE VMs SET ram_size = {{ new_ram_size }} WHERE vm_id = {{ vm_id }}"
           register: result
 
+        - name: Confirm RAM update
+          debug:
+            msg: "RAM updated successfully for VM ID {{ vm_id }}"
+
         - name: Signal successful completion to Camunda
-          when: result.failed is not defined or not result.failed
           uri:
-            url: "http://localhost:8080/engine-rest/signal"
+            url: "http://localhost:8080/engine-rest/message"
             method: POST
             headers:
               Content-Type: "application/json"
-            body: |
-              {
-                "name": "ram_change_completed",
-                "processVariables": {
-                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
-                  "ram_size": { "value": "{{ new_ram_size }}", "type": "Integer" },
-                  "job_status": { "value": "success", "type": "String" }
-                }
-              }
             body_format: json
+            body:
+              messageName: "ram_change_completed"
+              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
       rescue:
         - name: Signal failure to Camunda
           uri:
-            url: "http://localhost:8080/engine-rest/signal"
+            url: "http://localhost:8080/engine-rest/message"
             method: POST
             headers:
               Content-Type: "application/json"
-            body: |
-              {
-                "name": "ram_change_failed",
-                "processVariables": {
-                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
-                  "error_message": { "value": "Failed to change RAM size for VM ID {{ vm_id }}", "type": "String" }
-                }
-              }
             body_format: json
+            body:
+              messageName: "ram_change_failed"
+              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
         - name: Log failure message
           debug:
-            msg: "Failed to change RAM size for VM ID {{ vm_id }}. Signal sent to Camunda."
+            msg: "RAM update failed for VM ID {{ vm_id }}. Signal sent to Camunda."
