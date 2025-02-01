@@ -110,7 +110,7 @@
           when: execution_id is defined
         
         - name: Wait for next task to start
-          retries: 10  # Maximal 10 Versuche
+          retries: 5  # Maximal 5 Versuche
           delay: 5      # Alle 5 Sekunden prüfen
           register: new_task
           until: new_task.json | length > 0
