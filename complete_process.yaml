@@ -2,7 +2,15 @@
 - name: Report on completed process
   hosts: localhost
   gather_facts: false
+  vars:
+    process_instance_id: null
+
   tasks:
+    - name: Validate input variables
+      fail:
+        msg: "process_instance_id must be provided"
+      when: process_instance_id is not defined or process_instance_id | trim == ""
+
     - name: Display task summary
       debug:
         msg: |
@@ -14,11 +22,27 @@
           {% endfor %}
 
     - name: Check overall process success
+      set_fact:
+        process_success: "{{ changes | selectattr('result', 'equalto', 'Failed') | list | length == 0 }}"
+
+    - name: Indicate process success
       debug:
         msg: "Process completed successfully"
-      when: changes | selectattr('result', 'equalto', 'Failed') | list | length == 0
+      when: process_success
 
     - name: Indicate process failure
       debug:
         msg: "Process completed with errors"
-      when: changes | selectattr('result', 'equalto', 'Failed') | list | length > 0
+      when: not process_success
+
+    - name: Signal process completion to Camunda
+      uri:
+        url: "http://localhost:8080/engine-rest/message"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          messageName: "{{ 'process_completed_success' if process_success else 'process_completed_failure' }}"
+          processInstanceId: "{{ process_instance_id }}"
+        status_code: 204
