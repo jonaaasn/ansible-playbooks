@@ -103,11 +103,8 @@
             body:
               messageName: "create_snapshot_completed"
               processInstanceId: "{{ process_instance_id }}"
-              processVariables:
-                vm_id:
-                  value: "{{ vm_id }}"
-                  type: "String"
-            status_code: 200
+            status_code: 204
+          when: process_instance_id is defined
 
       rescue:
         - name: Send failure message to Camunda
