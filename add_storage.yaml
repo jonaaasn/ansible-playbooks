@@ -4,14 +4,17 @@
   gather_facts: false
   collections:
     - community.postgresql
+
   vars:
-    vm_id: null       # Dynamisch übergebene VM-ID
-    disk_size: null   # Dynamisch übergebene Größe der Festplatte
+    vm_id: null
+    disk_size: null
+    process_instance_id: null
+
   tasks:
     - name: Validate input variables
       fail:
-        msg: "vm_id and disk_size must be provided"
-      when: vm_id is not defined or disk_size is not defined
+        msg: "vm_id, disk_size, and process_instance_id must be provided"
+      when: vm_id is not defined or disk_size is not defined or process_instance_id is not defined
 
     - block:
         - name: Add disk entry to the database
@@ -22,41 +25,33 @@
             query: "INSERT INTO Disks (vm_id, disk_size) VALUES ({{ vm_id }}, {{ disk_size }})"
           register: result
 
+        - name: Confirm disk addition
+          debug:
+            msg: "Disk added successfully to VM ID {{ vm_id }}"
+
         - name: Signal successful completion to Camunda
-          when: result.failed is not defined or not result.failed
           uri:
-            url: "http://localhost:8080/engine-rest/signal"
+            url: "http://localhost:8080/engine-rest/message"
             method: POST
             headers:
               Content-Type: "application/json"
-            body: |
-              {
-                "name": "storage_add_completed",
-                "processVariables": {
-                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
-                  "disk_size": { "value": "{{ disk_size }}", "type": "Integer" },
-                  "job_status": { "value": "success", "type": "String" }
-                }
-              }
             body_format: json
+            body:
+              messageName: "storage_add_completed"
+              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
       rescue:
         - name: Signal failure to Camunda
           uri:
-            url: "http://localhost:8080/engine-rest/signal"
+            url: "http://localhost:8080/engine-rest/message"
             method: POST
             headers:
               Content-Type: "application/json"
-            body: |
-              {
-                "name": "storage_add_failed",
-                "processVariables": {
-                  "vm_id": { "value": "{{ vm_id }}", "type": "String" },
-                  "error_message": { "value": "Failed to add storage for VM ID {{ vm_id }}", "type": "String" }
-                }
-              }
             body_format: json
+            body:
+              messageName: "storage_add_failed"
+              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
         - name: Log failure message
