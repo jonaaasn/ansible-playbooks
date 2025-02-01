@@ -89,6 +89,10 @@
           set_fact:
             process_instance_id: "{{ (camunda_instances.json | selectattr('definitionId', 'search', 'change_request') | list | first).id | default('') }}"
 
+        - name: Debug Camunda URL
+          debug:
+            msg: "Camunda API URL: http://{{ camunda_host | default('10.0.2.15') }}:8080/engine-rest/signal"
+
         - name: Send success message to Camunda
           uri:
             url: "http://10.0.2.15:8080/engine-rest/message"
