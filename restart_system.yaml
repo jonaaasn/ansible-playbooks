@@ -1,8 +1,30 @@
 ---
-- name: Simulate a system restart
+- name: Restart the VM system
   hosts: localhost
   gather_facts: false
+
+  vars:
+    vm_id: null
+    process_instance_id: null
+
   tasks:
-    - name: Simulate restart
+    - name: Validate input variables
+      fail:
+        msg: "vm_id and process_instance_id must be provided"
+      when: vm_id is not defined or process_instance_id is not defined
+
+    - name: Simulate system restart
       debug:
-        msg: "System successfully restarted"
+        msg: "System for VM ID {{ vm_id }} has been restarted successfully."
+
+    - name: Signal successful restart to Camunda
+      uri:
+        url: "http://localhost:8080/engine-rest/message"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          messageName: "restart_system_completed"
+          processInstanceId: "{{ process_instance_id }}"
+        status_code: 204
