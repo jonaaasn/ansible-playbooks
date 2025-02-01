@@ -14,10 +14,20 @@
         msg: "vm_id must be provided"
       when: vm_id is not defined or vm_id | trim == ""
 
+    # Debugging: Zeigt alle Ansible-Facts
+    - name: Debug all variables received
+      debug:
+        var: ansible_facts
+
+    # Debugging: Zeigt alle wichtigen Variablen
     - name: Debug all used variables
       debug:
         msg:
           - "vm_id: {{ vm_id | default('NOT SET') }}"
+          - "cpu_count: {{ vm_details.query_result[0].cpu_count | default('NOT SET') }}"
+          - "ram_size: {{ vm_details.query_result[0].ram_size | default('NOT SET') }}"
+          - "disks: {{ vm_details.query_result[0].disks | default('NOT SET') }}"
+          - "adapters: {{ vm_details.query_result[0].adapters | default('NOT SET') }}"
 
     - block:
         - name: Check database connection
@@ -25,7 +35,7 @@
             db: "vminventory"
             login_user: "jonas"
             login_password: "admin"
-            login_host: "10.0.2.15"
+            login_host: "10.0.2.15"  # IP-Adresse deines PostgreSQL-Servers
             login_port: 5432
             query: "SELECT 1;"
           register: db_test
@@ -47,6 +57,10 @@
               FROM VMs
               WHERE vm_id = {{ vm_id }};
           register: vm_details
+
+        - name: Debug fetched VM details
+          debug:
+            var: vm_details.query_result
 
         - name: Validate VM existence
           fail:
@@ -76,53 +90,36 @@
           debug:
             msg: "Snapshot created for VM ID {{ vm_id }} successfully."
 
-        - name: Get active process instance ID from Camunda
+        - name: Signal successful completion to Camunda
           uri:
-            url: "http://10.0.2.15:8080/engine-rest/process-instance"
-            method: GET
-            return_content: yes
-          register: camunda_instances
-        
-        - name: Extract processInstanceId
-          set_fact:
-            process_instance_id: "{{ camunda_instances.json[0].id }}"
-          when: camunda_instances.json | length > 0
-        
-        - name: Debug Camunda process instance
-          debug:
-            msg: "Active processInstanceId: {{ process_instance_id | default('No active instance') }}"
-
-        - name: Debug Camunda URL
-          debug:
-            msg: "Camunda API URL: http://{{ camunda_host | default('10.0.2.15') }}:8080/engine-rest/message"
-
-        - name: Send success message to Camunda
-          uri:
-            url: "http://10.0.2.15:8080/engine-rest/message"
+            url: "http://10.0.2.15:8080/engine-rest/signal"
             method: POST
             headers:
               Content-Type: "application/json"
             body_format: json
             body:
-              messageName: "create_snapshot_completed"
-              processInstanceId: "{{ process_instance_id }}"
+              name: "create_snapshot_completed"
             status_code: 204
-          when: process_instance_id is defined
 
       rescue:
-        - name: Send failure message to Camunda
+        - name: Signal failure to Camunda
           uri:
-            url: "http://10.0.2.15:8080/engine-rest/message"
+            url: "http://10.0.2.15:8080/engine-rest/signal"
             method: POST
             headers:
               Content-Type: "application/json"
             body_format: json
             body:
-              messageName: "create_snapshot_failed"
-              processInstanceId: "{{ process_instance_id }}"
+              name: "create_snapshot_failed"
+              processVariables:
+                vm_id:
+                  value: "{{ vm_id | default('UNKNOWN') }}"
+                  type: "String"
+                error_message:
+                  value: "Snapshot creation failed for VM ID {{ vm_id | default('UNKNOWN') }}"
+                  type: "String"
             status_code: 204
-          when: process_instance_id is defined
 
         - name: Log failure message
           debug:
-            msg: "Snapshot creation failed for VM ID {{ vm_id }}. Message sent to Camunda."
+            msg: "Snapshot creation failed for VM ID {{ vm_id | default('UNKNOWN') }}. Signal sent to Camunda."
