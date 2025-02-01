@@ -99,27 +99,7 @@ age---
             body_format: json
             body:
               name: "create_snapshot_completed"
-              processVariables:
-                vm_id:
-                  value: "{{ vm_id }}"
-                  type: "String"
-                cpu_count:
-                  value: "{{ vm_details.query_result[0].cpu_count }}"
-                  type: "Integer"
-                ram_size:
-                  value: "{{ vm_details.query_result[0].ram_size }}"
-                  type: "Integer"
-                disks:
-                  value: "{{ vm_details.query_result[0].disks | to_json }}"
-                  type: "String"
-                adapters:
-                  value: "{{ vm_details.query_result[0].adapters }}"
-                  type: "Integer"
-                job_status:
-                  value: "success"
-                  type: "String"
             status_code: 204
-
 
       rescue:
         - name: Signal failure to Camunda
@@ -131,15 +111,7 @@ age---
             body_format: json
             body:
               name: "create_snapshot_failed"
-              processVariables:
-                vm_id:
-                  value: "{{ vm_id | default('UNKNOWN') }}"
-                  type: "String"
-                error_message:
-                  value: "Snapshot creation failed for VM ID {{ vm_id | default('UNKNOWN') }}"
-                  type: "String"
             status_code: 204
-
 
         - name: Log failure message
           debug:
