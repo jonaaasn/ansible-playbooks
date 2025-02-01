@@ -120,14 +120,9 @@
             body:
               messageName: "create_snapshot_failed"
               processInstanceId: "{{ process_instance_id }}"
-              processVariables:
-                vm_id:
-                  value: "{{ vm_id }}"
-                  type: "String"
-                error_message:
-                  value: "Snapshot creation failed for VM ID {{ vm_id }}"
-                  type: "String"
-            status_code: 200
+            status_code: 204
+          when: process_instance_id is defined
+
 
         - name: Log failure message
           debug:
