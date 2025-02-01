@@ -80,14 +80,17 @@
           uri:
             url: "http://10.0.2.15:8080/engine-rest/process-instance"
             method: GET
-            headers:
-              Content-Type: "application/json"
             return_content: yes
           register: camunda_instances
-
+        
         - name: Extract processInstanceId
           set_fact:
-            process_instance_id: "{{ (camunda_instances.json | selectattr('definitionId', 'search', 'change_request') | list | first).id | default('') }}"
+            process_instance_id: "{{ camunda_instances.json[0].id }}"
+          when: camunda_instances.json | length > 0
+        
+        - name: Debug Camunda process instance
+          debug:
+            msg: "Active processInstanceId: {{ process_instance_id | default('No active instance') }}"
 
         - name: Debug Camunda URL
           debug:
