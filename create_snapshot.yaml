@@ -105,9 +105,25 @@
             body_format: json
             body:
               messageName: "create_snapshot_completed"
-              processInstanceId: "{{ process_instance_id }}"
+              executionId: "{{ execution_id }}"
             status_code: 204
-          when: process_instance_id is defined
+          when: execution_id is defined
+        
+        - name: Wait for next task to start
+          retries: 10  # Maximal 10 Versuche
+          delay: 5      # Alle 5 Sekunden prüfen
+          register: new_task
+          until: new_task.json | length > 0
+          uri:
+            url: "http://10.0.2.15:8080/engine-rest/task"
+            method: GET
+            return_content: yes
+        
+        - name: Debug next task
+          debug:
+            msg: "New task detected: {{ new_task.json[0].name }}"
+          when: new_task.json | length > 0
+
 
       rescue:
         - name: Send failure message to Camunda
