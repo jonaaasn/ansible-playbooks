@@ -7,14 +7,14 @@
 
   vars:
     vm_id: null
-    new_ram_size: null
+    value: null
     process_instance_id: null
 
   tasks:
     - name: Validate input variables
       fail:
-        msg: "vm_id, new_ram_size, and process_instance_id must be provided"
-      when: vm_id is not defined or new_ram_size is not defined or process_instance_id is not defined
+        msg: "vm_id, value, and process_instance_id must be provided"
+      when: vm_id is not defined or value is not defined or process_instance_id is not defined
 
     - block:
         - name: Update RAM size in the database
@@ -22,7 +22,7 @@
             db: vminventory
             login_user: jonas
             login_password: admin
-            query: "UPDATE VMs SET ram_size = {{ new_ram_size }} WHERE vm_id = {{ vm_id }}"
+            query: "UPDATE VMs SET ram_size = {{ value }} WHERE vm_id = {{ vm_id }}"
           register: result
 
         - name: Confirm RAM update
