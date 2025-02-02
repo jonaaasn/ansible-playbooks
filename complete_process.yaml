@@ -43,6 +43,6 @@
           Content-Type: "application/json"
         body_format: json
         body:
-          messageName: "{{ 'process_completed_success' if process_success else 'process_completed_failure' }}"
+          messageName: "{{ 'process_completion_completed' if process_success else 'process_completion_failed' }}"
           processInstanceId: "{{ process_instance_id }}"
         status_code: 204
