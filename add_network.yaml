@@ -36,7 +36,7 @@
               Content-Type: "application/json"
             body_format: json
             body:
-              messageName: "network_add_completed"
+              messageName: "add_network_completed"
               processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
@@ -49,7 +49,7 @@
               Content-Type: "application/json"
             body_format: json
             body:
-              messageName: "network_add_failed"
+              messageName: "add_network_failed"
               processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
