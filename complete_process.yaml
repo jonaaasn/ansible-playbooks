@@ -4,6 +4,7 @@
   gather_facts: false
   vars:
     process_instance_id: null
+    changes: []
 
   tasks:
     - name: Validate input variables
@@ -13,7 +14,9 @@
 
     - name: Debug received variables
       debug:
-        var: ansible_facts
+        msg:
+          - "Process Instance ID: {{ process_instance_id }}"
+          - "Changes: {{ changes | default('NOT RECEIVED') }}"
 
     - name: Display task summary
       debug:
@@ -24,6 +27,7 @@
           Result: {{ change.result }}
           Details: {{ change.details }}
           {% endfor %}
+      when: changes | length > 0
 
     - name: Check overall process success
       set_fact:
