@@ -19,7 +19,7 @@
 
     - name: Signal successful restart to Camunda
       uri:
-        url: "http://localhost:8080/engine-rest/message"
+        url: "http://10.0.2.15:8080/engine-rest/message"
         method: POST
         headers:
           Content-Type: "application/json"
