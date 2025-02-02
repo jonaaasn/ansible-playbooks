@@ -22,7 +22,9 @@
             db: vminventory
             login_user: jonas
             login_password: admin
-            query: "INSERT INTO Disks (vm_id, value) VALUES ({{ vm_id }}, {{ value }})"
+            login_host: "10.0.2.15"
+            login_port: 5432
+            query: "INSERT INTO Disks (vm_id, disk_size) VALUES ({{ vm_id }}, {{ value }})"
           register: result
 
         - name: Confirm disk addition
@@ -31,7 +33,7 @@
 
         - name: Signal successful completion to Camunda
           uri:
-            url: "http://localhost:8080/engine-rest/message"
+            url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
             headers:
               Content-Type: "application/json"
@@ -44,7 +46,7 @@
       rescue:
         - name: Signal failure to Camunda
           uri:
-            url: "http://localhost:8080/engine-rest/message"
+            url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
             headers:
               Content-Type: "application/json"
@@ -56,4 +58,4 @@
 
         - name: Log failure message
           debug:
-            msg: "Failed to add storage for VM ID {{ vm_id }}. Signal sent to Camunda."
+            msg: "Failed to add disk for VM ID {{ vm_id }}. Signal sent to Camunda."
