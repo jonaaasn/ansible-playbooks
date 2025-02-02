@@ -11,6 +11,10 @@
         msg: "process_instance_id must be provided"
       when: process_instance_id is not defined or process_instance_id | trim == ""
 
+    - name: Debug received variables
+      debug:
+        var: ansible_facts
+
     - name: Display task summary
       debug:
         msg: |
