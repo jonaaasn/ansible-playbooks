@@ -21,6 +21,8 @@
             db: vminventory
             login_user: jonas
             login_password: admin
+            login_host: "10.0.2.15"
+            login_port: 5432
             query: |
               SELECT 
                 cpu_count, 
@@ -43,13 +45,17 @@
             db: vminventory
             login_user: jonas
             login_password: admin
+            login_host: "10.0.2.15"
+            login_port: 5432
             query: "UPDATE VMs SET cpu_count = {{ snapshot_details.query_result[0].cpu_count }} WHERE vm_id = {{ vm_id }}"
-        
+
         - name: Restore RAM size
           community.postgresql.postgresql_query:
             db: vminventory
             login_user: jonas
             login_password: admin
+            login_host: "10.0.2.15"
+            login_port: 5432
             query: "UPDATE VMs SET ram_size = {{ snapshot_details.query_result[0].ram_size }} WHERE vm_id = {{ vm_id }}"
 
         - name: Restore Disks (Delete old, Insert new)
@@ -57,6 +63,8 @@
             db: vminventory
             login_user: jonas
             login_password: admin
+            login_host: "10.0.2.15"
+            login_port: 5432
             query: |
               DELETE FROM Disks WHERE vm_id = {{ vm_id }};
               INSERT INTO Disks (vm_id, disk_id, disk_size)
@@ -71,6 +79,8 @@
             db: vminventory
             login_user: jonas
             login_password: admin
+            login_host: "10.0.2.15"
+            login_port: 5432
             query: |
               DELETE FROM Netzwerkadapter WHERE vm_id = {{ vm_id }};
               INSERT INTO Netzwerkadapter (vm_id)
@@ -82,10 +92,29 @@
 
         - name: Signal successful restoration to Camunda
           uri:
-            url: "http://localhost:8080/engine-rest/message"
+            url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
             headers:
               Content-Type: "application/json"
             body_format: json
             body:
-              me
+              messageName: "restore_snapshot_completed"
+              processInstanceId: "{{ process_instance_id }}"
+            status_code: 204
+
+      rescue:
+        - name: Signal failure to Camunda
+          uri:
+            url: "http://10.0.2.15:8080/engine-rest/message"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+            body:
+              messageName: "restore_snapshot_failed"
+              processInstanceId: "{{ process_instance_id }}"
+            status_code: 204
+
+        - name: Log failure message
+          debug:
+            msg: "Snapshot restoration failed for VM ID {{ vm_id }}. Signal sent to Camunda."
