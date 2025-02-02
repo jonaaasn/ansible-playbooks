@@ -16,7 +16,23 @@
       debug:
         msg:
           - "Process Instance ID: {{ process_instance_id }}"
-          - "Changes: {{ changes | default('NOT RECEIVED') }}"
+
+    - name: Get changes from Camunda
+      uri:
+        url: "http://10.0.2.15:8080/engine-rest/process-instance/{{ process_instance_id }}/variables/changes"
+        method: GET
+        return_content: yes
+      register: response
+
+    - name: Decode changes JSON
+      set_fact:
+        changes: "{{ (response.json.value | default('[]')) | from_json }}"
+      when: response.json.value is defined
+
+    - name: Debug parsed changes
+      debug:
+        msg: "Parsed changes: {{ changes }}"
+      when: changes | length > 0
 
     - name: Display task summary
       debug:
