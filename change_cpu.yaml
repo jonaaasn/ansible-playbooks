@@ -14,9 +14,19 @@
     - name: Validate input variables
       fail:
         msg: "vm_id, value, and process_instance_id must be provided"
-      when: vm_id is not defined or value is not defined or process_instance_id is not defined
+      when: 
+        - vm_id is not defined or vm_id | trim == ""
+        - value is not defined or value | trim == ""
+        - process_instance_id is not defined or process_instance_id | trim == ""
 
     - block:
+        - name: Debug input values
+          debug:
+            msg: 
+              - "vm_id: {{ vm_id }}"
+              - "value: {{ value }}"
+              - "process_instance_id: {{ process_instance_id }}"
+
         - name: Update CPU count in the database
           community.postgresql.postgresql_query:
             db: vminventory
@@ -24,12 +34,12 @@
             login_password: admin
             login_host: "10.0.2.15"
             login_port: 5432
-            query: "UPDATE VMs SET cpu_count = {{ value }} WHERE vm_id = {{ vm_id }}"
+            query: "UPDATE VMs SET cpu_count = {{ value | int }} WHERE vm_id = {{ vm_id | int }}"
           register: result
 
         - name: Confirm CPU update
           debug:
-            msg: "CPU updated successfully for VM ID {{ vm_id }}"
+            msg: "CPU updated successfully for VM ID {{ vm_id }} to {{ value }} cores"
 
         - name: Signal successful completion to Camunda
           uri:
