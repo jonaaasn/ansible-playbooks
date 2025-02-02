@@ -21,6 +21,8 @@
             db: vminventory
             login_user: jonas
             login_password: admin
+            login_host: "10.0.2.15"
+            login_port: 5432
             query: "INSERT INTO Netzwerkadapter (vm_id) VALUES ({{ vm_id }})"
           register: result
 
@@ -30,7 +32,7 @@
 
         - name: Signal successful completion to Camunda
           uri:
-            url: "http://localhost:8080/engine-rest/message"
+            url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
             headers:
               Content-Type: "application/json"
@@ -43,7 +45,7 @@
       rescue:
         - name: Signal failure to Camunda
           uri:
-            url: "http://localhost:8080/engine-rest/message"
+            url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
             headers:
               Content-Type: "application/json"
