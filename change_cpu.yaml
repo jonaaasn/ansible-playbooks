@@ -18,6 +18,13 @@
           - "✅ Neuer CPU-Wert: {{ value }}"
           - "✅ Prozess-Instance-ID: {{ process_instance_id }}"
 
+    - name: Debug API Request Body
+      debug:
+        msg:
+          - "✅ processInstanceId: {{ process_instance_id }}"
+          - "✅ value (CPU-Wert): {{ value }} (Typ: {{ value | type_debug }})"
+    
+
     - name: Validate input variables
       fail:
         msg: "❌ Fehlende Variablen! vm_id={{ vm_id }}, value={{ value }}, process_instance_id={{ process_instance_id }}"
