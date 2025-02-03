@@ -73,11 +73,12 @@
                 {{ vm_id }},
                 {{ vm_details.query_result[0].cpu_count }},
                 {{ vm_details.query_result[0].ram_size }},
-                {{ vm_details.query_result[0].disks | to_json }}::jsonb,
-                {{ vm_details.query_result[0].adapters | to_json }}::jsonb,
+                '{{ vm_details.query_result[0].disks | to_json }}'::jsonb,
+                '{{ vm_details.query_result[0].adapters | to_json }}'::jsonb,
                 NOW()
               );
           register: result
+
 
         - name: Confirm snapshot creation
           debug:
