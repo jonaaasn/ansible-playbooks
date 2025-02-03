@@ -6,30 +6,20 @@
     - community.postgresql
 
   vars:
-    vm_id: null  # Dynamisch übergebene VM-ID
-    process_instance_id: null  # Dynamisch übergebene Process Instance ID
+    vm_id: "{{ vm_id | default('') }}"
+    process_instance_id: "{{ process_instance_id | default('') }}"
 
   tasks:
-    - name: Validate input variables
-      fail:
-        msg: "vm_id and process_instance_id must be provided"
-      when: vm_id is not defined or vm_id | trim == "" or process_instance_id is not defined or process_instance_id | trim == ""
-
-    # Debugging: Zeigt alle Ansible-Facts
-    - name: Debug all variables received
-      debug:
-        var: ansible_facts
-
-    # Debugging: Zeigt alle wichtigen Variablen
-    - name: Debug all used variables
+    - name: Debug received variables
       debug:
         msg:
-          - "vm_id: {{ vm_id | default('NOT SET') }}"
-          - "process_instance_id: {{ process_instance_id | default('NOT SET') }}"
-          - "cpu_count: {{ vm_details.query_result[0].cpu_count | default('NOT SET') }}"
-          - "ram_size: {{ vm_details.query_result[0].ram_size | default('NOT SET') }}"
-          - "disks: {{ vm_details.query_result[0].disks | default('NOT SET') }}"
-          - "adapters: {{ vm_details.query_result[0].adapters | default('NOT SET') }}"
+          - "✅ VM ID: {{ vm_id | default('NOT SET') }}"
+          - "✅ Process Instance ID: {{ process_instance_id | default('NOT SET') }}"
+
+    - name: Validate input variables
+      fail:
+        msg: "❌ vm_id and process_instance_id must be provided!"
+      when: vm_id | trim == "" or process_instance_id | trim == ""
 
     - block:
         - name: Check database connection
@@ -66,7 +56,7 @@
 
         - name: Validate VM existence
           fail:
-            msg: "VM with ID {{ vm_id }} does not exist"
+            msg: "❌ VM with ID {{ vm_id }} does not exist!"
           when: vm_details.query_result | length == 0
 
         - name: Insert snapshot into the database
@@ -90,7 +80,7 @@
 
         - name: Confirm snapshot creation
           debug:
-            msg: "Snapshot created for VM ID {{ vm_id }} successfully."
+            msg: "✅ Snapshot created for VM ID {{ vm_id }} successfully."
 
         - name: Signal successful completion to Camunda
           uri:
@@ -119,4 +109,4 @@
 
         - name: Log failure message
           debug:
-            msg: "Snapshot creation failed for VM ID {{ vm_id | default('UNKNOWN') }}. Signal sent to Camunda."
+            msg: "❌ Snapshot creation failed for VM ID {{ vm_id | default('UNKNOWN') }}. Signal sent to Camunda."
