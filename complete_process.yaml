@@ -3,24 +3,15 @@
   hosts: localhost
   gather_facts: false
   vars:
-    process_instance_id: null
-    changes: []
+    process_instance_id: "{{ process_instance_id }}"
+    changes: "{{ changes }}"
 
   tasks:
-    - name: Validate input variables
-      fail:
-        msg: "process_instance_id must be provided"
-      when: process_instance_id is not defined or process_instance_id | trim == ""
-
-    - name: Debug received extra_vars
-      debug:
-        msg: "Extra Vars: {{ extra_vars }}"
-
-
     - name: Debug received variables
       debug:
         msg:
           - "Process Instance ID: {{ process_instance_id }}"
+          - "Changes: {{ changes }}"
 
     - name: Get changes from Camunda
       uri:
