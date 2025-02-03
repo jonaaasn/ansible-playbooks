@@ -93,7 +93,6 @@
             body_format: json
             body:
               messageName: "create_snapshot_completed"
-              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
       rescue:
@@ -106,7 +105,6 @@
             body_format: json
             body:
               messageName: "create_snapshot_failed"
-              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
         - name: Log failure message
