@@ -4,7 +4,7 @@
   gather_facts: false
   vars:
     process_instance_id: "{{ process_instance_id | default('') }}"
-    changes: "{{ changes | default([]) }}"
+    changes: "{{ changes | default('[]') | from_json }}"
 
   tasks:
     - name: Debug received variables
@@ -19,18 +19,6 @@
       when: process_instance_id | trim == ""
 
     - block:
-        - name: Get changes from Camunda
-          uri:
-            url: "http://10.0.2.15:8080/engine-rest/process-instance/{{ process_instance_id }}/variables/changes"
-            method: GET
-            return_content: yes
-          register: response
-
-        - name: Decode changes JSON
-          set_fact:
-            changes: "{{ (response.json.value | default('[]')) | from_json }}"
-          when: response.json.value is defined
-
         - name: Debug parsed changes
           debug:
             msg: "✅ Parsed changes: {{ changes }}"
@@ -40,7 +28,12 @@
           debug:
             msg: |
               ✅ Completed Process Report:
-              Changes: {{ changes }}
+              Changes:
+              {% for change in changes %}
+              - Task: {{ change.task }}
+                Result: {{ change.result }}
+                Details: {{ change.details }}
+              {% endfor %}
           when: changes | length > 0
 
         - name: Check overall process success
