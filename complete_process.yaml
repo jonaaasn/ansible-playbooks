@@ -59,7 +59,6 @@
             body_format: json
             body:
               messageName: "{{ 'process_completion_completed' if process_success else 'process_completion_failed' }}"
-              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
       rescue:
@@ -72,7 +71,6 @@
             body_format: json
             body:
               messageName: "process_completion_failed"
-              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
         - name: Log failure message
