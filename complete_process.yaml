@@ -3,63 +3,85 @@
   hosts: localhost
   gather_facts: false
   vars:
-    process_instance_id: "{{ process_instance_id }}"
-    changes: "{{ changes }}"
+    process_instance_id: "{{ process_instance_id | default('') }}"
+    changes: "{{ changes | default([]) }}"
 
   tasks:
     - name: Debug received variables
       debug:
         msg:
-          - "Process Instance ID: {{ process_instance_id }}"
-          - "Changes: {{ changes }}"
+          - "✅ Process Instance ID: {{ process_instance_id }}"
+          - "✅ Changes: {{ changes }}"
 
-    - name: Get changes from Camunda
-      uri:
-        url: "http://10.0.2.15:8080/engine-rest/process-instance/{{ process_instance_id }}/variables/changes"
-        method: GET
-        return_content: yes
-      register: response
+    - name: Validate input variables
+      fail:
+        msg: "❌ process_instance_id must be provided!"
+      when: process_instance_id | trim == ""
 
-    - name: Decode changes JSON
-      set_fact:
-        changes: "{{ (response.json.value | default('[]')) | from_json }}"
-      when: response.json.value is defined
+    - block:
+        - name: Get changes from Camunda
+          uri:
+            url: "http://10.0.2.15:8080/engine-rest/process-instance/{{ process_instance_id }}/variables/changes"
+            method: GET
+            return_content: yes
+          register: response
 
-    - name: Debug parsed changes
-      debug:
-        msg: "Parsed changes: {{ changes }}"
-      when: changes | length > 0
+        - name: Decode changes JSON
+          set_fact:
+            changes: "{{ (response.json.value | default('[]')) | from_json }}"
+          when: response.json.value is defined
 
-    - name: Display task summary
-      debug:
-        msg: |
-          Completed Process Report:
-          Changes: {{ changes }}
-          {% endfor %}
-      when: changes | length > 0
+        - name: Debug parsed changes
+          debug:
+            msg: "✅ Parsed changes: {{ changes }}"
+          when: changes | length > 0
 
-    - name: Check overall process success
-      set_fact:
-        process_success: "{{ changes | selectattr('result', 'equalto', 'Failed') | list | length == 0 }}"
+        - name: Display task summary
+          debug:
+            msg: |
+              ✅ Completed Process Report:
+              Changes: {{ changes }}
+          when: changes | length > 0
 
-    - name: Indicate process success
-      debug:
-        msg: "Process completed successfully"
-      when: process_success
+        - name: Check overall process success
+          set_fact:
+            process_success: "{{ changes | selectattr('result', 'equalto', 'Failed') | list | length == 0 }}"
 
-    - name: Indicate process failure
-      debug:
-        msg: "Process completed with errors"
-      when: not process_success
+        - name: Indicate process success
+          debug:
+            msg: "✅ Process completed successfully!"
+          when: process_success
 
-    - name: Signal process completion to Camunda
-      uri:
-        url: "http://10.0.2.15:8080/engine-rest/message"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          messageName: "{{ 'process_completion_completed' if process_success else 'process_completion_failed' }}"
-          processInstanceId: "{{ process_instance_id }}"
-        status_code: 204
+        - name: Indicate process failure
+          debug:
+            msg: "❌ Process completed with errors!"
+          when: not process_success
+
+        - name: Signal process completion to Camunda
+          uri:
+            url: "http://10.0.2.15:8080/engine-rest/message"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+            body:
+              messageName: "{{ 'process_completion_completed' if process_success else 'process_completion_failed' }}"
+              processInstanceId: "{{ process_instance_id }}"
+            status_code: 204
+
+      rescue:
+        - name: Signal failure to Camunda
+          uri:
+            url: "http://10.0.2.15:8080/engine-rest/message"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body_format: json
+            body:
+              messageName: "process_completion_failed"
+              processInstanceId: "{{ process_instance_id }}"
+            status_code: 204
+
+        - name: Log failure message
+          debug:
+            msg: "❌ Process completion failed! Sent failure signal to Camunda."
