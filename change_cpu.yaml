@@ -5,7 +5,7 @@
   collections:
     - community.postgresql
 
-  extra_vars:
+  vars:
     vm_id: null
     value: null
     process_instance_id: null
