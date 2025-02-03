@@ -4,8 +4,8 @@
   gather_facts: false
 
   vars:
-    vm_id: null
-    process_instance_id: null
+    vm_id: "{{ vm_id }}"
+    process_instance_id: "{{ process_instance_id }}"
 
   tasks:
     - name: Validate input variables
