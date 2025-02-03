@@ -47,7 +47,6 @@
             body_format: json
             body:
               messageName: "add_network_completed"
-              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
       rescue:
@@ -60,7 +59,6 @@
             body_format: json
             body:
               messageName: "add_network_failed"
-              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
         - name: Log failure message
