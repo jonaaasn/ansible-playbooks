@@ -26,5 +26,4 @@
         body_format: json
         body:
           messageName: "restart_system_completed"
-          processInstanceId: "{{ process_instance_id }}"
         status_code: 204
