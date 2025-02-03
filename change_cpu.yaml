@@ -9,24 +9,36 @@
     vm_id: null
     value: null
     process_instance_id: null
+    ansible_payload: {}
 
   tasks:
+    - name: Parse ansible_payload JSON
+      set_fact:
+        ansible_vars: "{{ ansible_payload | default('{}') | from_json }}"
+
+    - name: Set individual variables from ansible_payload
+      set_fact:
+        vm_id: "{{ ansible_vars.vm_id }}"
+        value: "{{ ansible_vars.value }}"
+        process_instance_id: "{{ ansible_vars.process_instance_id }}"
+
+    - name: Debug alle empfangenen Variablen
+      debug:
+        msg:
+          - "vm_id: {{ vm_id }}"
+          - "value: {{ value }}"
+          - "process_instance_id: {{ process_instance_id }}"
+          - "Ansible Payload: {{ ansible_payload }}"
+
     - name: Validate input variables
       fail:
-        msg: "vm_id, value, and process_instance_id must be provided"
+        msg: "❌ Fehlende Variablen! vm_id={{ vm_id }}, value={{ value }}, process_instance_id={{ process_instance_id }}"
       when: 
-        - vm_id is not defined or vm_id | trim == ""
-        - value is not defined or value | trim == ""
-        - process_instance_id is not defined or process_instance_id | trim == ""
+        vm_id is not defined or vm_id | trim == "" or 
+        value is not defined or value | trim == "" or 
+        process_instance_id is not defined or process_instance_id | trim == ""
 
     - block:
-        - name: Debug input values
-          debug:
-            msg: 
-              - "vm_id: {{ vm_id }}"
-              - "value: {{ value }}"
-              - "process_instance_id: {{ process_instance_id }}"
-
         - name: Update CPU count in the database
           community.postgresql.postgresql_query:
             db: vminventory
@@ -39,9 +51,9 @@
 
         - name: Confirm CPU update
           debug:
-            msg: "CPU updated successfully for VM ID {{ vm_id }} to {{ value }} cores"
+            msg: "✅ CPU erfolgreich geändert für VM ID {{ vm_id }} auf {{ value }} Kerne"
 
-        - name: Signal successful completion to Camunda
+        - name: Erfolgreiche Änderung an Camunda melden
           uri:
             url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
@@ -68,4 +80,4 @@
 
         - name: Log failure message
           debug:
-            msg: "CPU update failed for VM ID {{ vm_id }}. Signal sent to Camunda."
+            msg: "❌ CPU update failed for VM ID {{ vm_id }}. Signal sent to Camunda."
