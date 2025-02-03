@@ -4,7 +4,7 @@
   gather_facts: false
   vars:
     process_instance_id: "{{ process_instance_id }}"
-    changes: "{{ changes }}"
+    changes: "{{ ansible_vars.changes }}"
 
   tasks:
     - name: Debug received variables
