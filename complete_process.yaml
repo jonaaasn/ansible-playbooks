@@ -4,7 +4,7 @@
   gather_facts: false
   vars:
     process_instance_id: "{{ process_instance_id }}"
-    changes: "{{ ansible_vars.changes }}"
+    changes: "{{ changes }}"
 
   tasks:
     - name: Debug received variables
@@ -34,10 +34,7 @@
       debug:
         msg: |
           Completed Process Report:
-          {% for change in changes %}
-          Task: {{ change.task }}
-          Result: {{ change.result }}
-          Details: {{ change.details }}
+          Changes: {{ changes }}
           {% endfor %}
       when: changes | length > 0
 
