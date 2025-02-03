@@ -6,8 +6,8 @@
     - community.postgresql
 
   vars:
-    vm_id: "{{ vm_id | default('') }}"
-    process_instance_id: "{{ process_instance_id | default('') }}"
+    vm_id: "{{ vm_id }}"
+    process_instance_id: "{{ process_instance_id }}"
 
   tasks:
     - name: Debug received variables
