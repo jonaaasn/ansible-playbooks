@@ -6,32 +6,42 @@
     - community.postgresql
 
   vars:
-    vm_id: null
-    value: null
-    process_instance_id: null
+    vm_id: "{{ vm_id | default('') }}"
+    value: "{{ value | default('') }}"
+    process_instance_id: "{{ process_instance_id | default('') }}"
 
   tasks:
+    - name: Debug empfangene Variablen aus extra_vars
+      debug:
+        msg:
+          - "✅ VM ID: {{ vm_id }}"
+          - "✅ Neuer RAM-Wert: {{ value }} GB"
+          - "✅ Prozess-Instance-ID: {{ process_instance_id }}"
+
     - name: Validate input variables
       fail:
-        msg: "vm_id, value, and process_instance_id must be provided"
-      when: vm_id is not defined or value is not defined or process_instance_id is not defined
+        msg: "❌ Fehlende Variablen! vm_id={{ vm_id }}, value={{ value }}, process_instance_id={{ process_instance_id }}"
+      when: 
+        - vm_id | trim == "" 
+        - value | trim == "" 
+        - process_instance_id | trim == ""
 
     - block:
-        - name: Update RAM size in the database
+        - name: Update RAM size in der Datenbank
           community.postgresql.postgresql_query:
             db: vminventory
             login_user: jonas
             login_password: admin
             login_host: "10.0.2.15"
             login_port: 5432
-            query: "UPDATE VMs SET ram_size = {{ value }} WHERE vm_id = {{ vm_id }}"
+            query: "UPDATE VMs SET ram_size = {{ value | int }} WHERE vm_id = {{ vm_id | int }}"
           register: result
 
-        - name: Confirm RAM update
+        - name: Erfolgreich aktualisiert
           debug:
-            msg: "RAM updated successfully for VM ID {{ vm_id }}"
+            msg: "✅ RAM erfolgreich geändert für VM ID {{ vm_id }} auf {{ value }} GB"
 
-        - name: Signal successful completion to Camunda
+        - name: Erfolgreiche Änderung an Camunda melden
           uri:
             url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
@@ -44,7 +54,7 @@
             status_code: 204
 
       rescue:
-        - name: Signal failure to Camunda
+        - name: Fehler an Camunda melden
           uri:
             url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
@@ -58,4 +68,4 @@
 
         - name: Log failure message
           debug:
-            msg: "RAM update failed for VM ID {{ vm_id }}. Signal sent to Camunda."
+            msg: "❌ RAM-Update fehlgeschlagen für VM ID {{ vm_id }}. Fehler an Camunda gesendet."
