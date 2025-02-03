@@ -9,7 +9,6 @@
     vm_id: null
     value: null
     process_instance_id: null
-    ansible_payload: {}
 
   tasks:
     - name: Parse ansible_payload JSON
