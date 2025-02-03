@@ -44,11 +44,12 @@
                 vm_id, 
                 cpu_count, 
                 ram_size, 
-                (SELECT json_agg(d.*) FROM Disks d WHERE d.vm_id = {{ vm_id }}) AS disks,
-                (SELECT json_agg(n.*) FROM Netzwerkadapter n WHERE n.vm_id = {{ vm_id }}) AS adapters
+                (SELECT COALESCE(jsonb_agg(d.*), '[]'::jsonb) FROM Disks d WHERE d.vm_id = {{ vm_id }}) AS disks,
+                (SELECT COALESCE(jsonb_agg(n.*), '[]'::jsonb) FROM Netzwerkadapter n WHERE n.vm_id = {{ vm_id }}) AS adapters
               FROM VMs
               WHERE vm_id = {{ vm_id }};
           register: vm_details
+
 
         - name: Debug fetched VM details
           debug:
@@ -72,11 +73,10 @@
                 {{ vm_id }},
                 {{ vm_details.query_result[0].cpu_count }},
                 {{ vm_details.query_result[0].ram_size }},
-                '{{ vm_details.query_result[0].disks | to_json }}'::jsonb,
-                {{ vm_details.query_result[0].adapters | int }},
+                {{ vm_details.query_result[0].disks | to_json }}::jsonb,
+                {{ vm_details.query_result[0].adapters | to_json }}::jsonb,
                 NOW()
               );
-
           register: result
 
         - name: Confirm snapshot creation
