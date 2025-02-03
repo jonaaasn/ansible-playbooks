@@ -6,39 +6,28 @@
     - community.postgresql
 
   vars:
-    vm_id: null
-    value: null
-    process_instance_id: null
+    vm_id: "{{ vm_id | default('') }}"
+    value: "{{ value | default('') }}"
+    process_instance_id: "{{ process_instance_id | default('') }}"
 
   tasks:
-    - name: Parse ansible_payload JSON
-      set_fact:
-        ansible_vars: "{{ ansible_payload | default('{}') | from_json }}"
-
-    - name: Set individual variables from ansible_payload
-      set_fact:
-        vm_id: "{{ ansible_vars.vm_id }}"
-        value: "{{ ansible_vars.value }}"
-        process_instance_id: "{{ ansible_vars.process_instance_id }}"
-
-    - name: Debug alle empfangenen Variablen
+    - name: Debug empfangene Variablen aus extra_vars
       debug:
         msg:
-          - "vm_id: {{ vm_id }}"
-          - "value: {{ value }}"
-          - "process_instance_id: {{ process_instance_id }}"
-          - "Ansible Payload: {{ ansible_payload }}"
+          - "✅ VM ID: {{ vm_id }}"
+          - "✅ Neuer CPU-Wert: {{ value }}"
+          - "✅ Prozess-Instance-ID: {{ process_instance_id }}"
 
     - name: Validate input variables
       fail:
         msg: "❌ Fehlende Variablen! vm_id={{ vm_id }}, value={{ value }}, process_instance_id={{ process_instance_id }}"
       when: 
-        vm_id is not defined or vm_id | trim == "" or 
-        value is not defined or value | trim == "" or 
-        process_instance_id is not defined or process_instance_id | trim == ""
+        - vm_id | trim == "" 
+        - value | trim == "" 
+        - process_instance_id | trim == ""
 
     - block:
-        - name: Update CPU count in the database
+        - name: Update CPU count in der Datenbank
           community.postgresql.postgresql_query:
             db: vminventory
             login_user: jonas
@@ -48,7 +37,7 @@
             query: "UPDATE VMs SET cpu_count = {{ value | int }} WHERE vm_id = {{ vm_id | int }}"
           register: result
 
-        - name: Confirm CPU update
+        - name: Erfolgreich aktualisiert
           debug:
             msg: "✅ CPU erfolgreich geändert für VM ID {{ vm_id }} auf {{ value }} Kerne"
 
@@ -65,7 +54,7 @@
             status_code: 204
 
       rescue:
-        - name: Signal failure to Camunda
+        - name: Fehler an Camunda melden
           uri:
             url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
@@ -79,4 +68,4 @@
 
         - name: Log failure message
           debug:
-            msg: "❌ CPU update failed for VM ID {{ vm_id }}. Signal sent to Camunda."
+            msg: "❌ CPU-Update fehlgeschlagen für VM ID {{ vm_id }}. Fehler an Camunda gesendet."
