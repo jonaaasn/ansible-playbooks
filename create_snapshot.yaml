@@ -6,8 +6,8 @@
     - community.postgresql
 
   vars:
-    vm_id: "{{ vm_id }}"
-    process_instance_id: "{{ process_instance_id }}"
+    vm_id: "{{ vm_id | default('') }}"
+    process_instance_id: "{{ process_instance_id | default('') }}"
 
   tasks:
     - name: Debug received variables
@@ -44,15 +44,15 @@
                 vm_id, 
                 cpu_count, 
                 ram_size, 
-                (SELECT json_agg(d) FROM (SELECT disk_id, disk_size FROM Disks WHERE vm_id = {{ vm_id }}) d) AS disks,
-                (SELECT COUNT(*) FROM Netzwerkadapter WHERE vm_id = {{ vm_id }}) AS adapters
+                (SELECT json_agg(d.*) FROM Disks d WHERE d.vm_id = {{ vm_id }}) AS disks,
+                (SELECT json_agg(n.*) FROM Netzwerkadapter n WHERE n.vm_id = {{ vm_id }}) AS adapters
               FROM VMs
               WHERE vm_id = {{ vm_id }};
           register: vm_details
 
         - name: Debug fetched VM details
           debug:
-            var: vm_details.query_result
+            msg: "🔍 VM Details: {{ vm_details.query_result | to_json }}"
 
         - name: Validate VM existence
           fail:
@@ -73,7 +73,7 @@
                 {{ vm_details.query_result[0].cpu_count }},
                 {{ vm_details.query_result[0].ram_size }},
                 '{{ vm_details.query_result[0].disks | to_json }}',
-                {{ vm_details.query_result[0].adapters }},
+                '{{ vm_details.query_result[0].adapters | to_json }}',
                 NOW()
               );
           register: result
@@ -91,6 +91,7 @@
             body_format: json
             body:
               messageName: "create_snapshot_completed"
+              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
       rescue:
@@ -103,6 +104,7 @@
             body_format: json
             body:
               messageName: "create_snapshot_failed"
+              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
         - name: Log failure message
