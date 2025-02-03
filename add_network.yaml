@@ -6,14 +6,22 @@
     - community.postgresql
 
   vars:
-    vm_id: null
-    process_instance_id: null
+    vm_id: "{{ vm_id | default('') }}"
+    process_instance_id: "{{ process_instance_id | default('') }}"
 
   tasks:
+    - name: Debug empfangene Variablen aus extra_vars
+      debug:
+        msg:
+          - "✅ VM ID: {{ vm_id }}"
+          - "✅ Prozess-Instance-ID: {{ process_instance_id }}"
+
     - name: Validate input variables
       fail:
-        msg: "vm_id and process_instance_id must be provided"
-      when: vm_id is not defined or process_instance_id is not defined
+        msg: "❌ Fehlende Variablen! vm_id={{ vm_id }}, process_instance_id={{ process_instance_id }}"
+      when: 
+        - vm_id | trim == "" 
+        - process_instance_id | trim == ""
 
     - block:
         - name: Add network adapter entry to the database
@@ -26,11 +34,11 @@
             query: "INSERT INTO Netzwerkadapter (vm_id) VALUES ({{ vm_id }})"
           register: result
 
-        - name: Confirm network adapter addition
+        - name: Erfolgreich hinzugefügt
           debug:
-            msg: "Network adapter added successfully to VM ID {{ vm_id }}"
+            msg: "✅ Netzwerkadapter erfolgreich hinzugefügt für VM ID {{ vm_id }}"
 
-        - name: Signal successful completion to Camunda
+        - name: Erfolgreiche Änderung an Camunda melden
           uri:
             url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
@@ -43,7 +51,7 @@
             status_code: 204
 
       rescue:
-        - name: Signal failure to Camunda
+        - name: Fehler an Camunda melden
           uri:
             url: "http://10.0.2.15:8080/engine-rest/message"
             method: POST
@@ -57,4 +65,4 @@
 
         - name: Log failure message
           debug:
-            msg: "Failed to add network adapter for VM ID {{ vm_id }}. Signal sent to Camunda."
+            msg: "❌ Netzwerkadapter-Update fehlgeschlagen für VM ID {{ vm_id }}. Fehler an Camunda gesendet."
