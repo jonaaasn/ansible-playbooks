@@ -56,6 +56,10 @@
               - "🔹 processInstanceId: {{ process_instance_id }}"
               - "🔹 value: {{ value }} (Typ: {{ value | type_debug }})"
 
+        - name: Debug JSON-Body für Camunda
+          debug:
+            msg: "{{ body | to_json }}"
+
         - name: Erfolgreiche Änderung an Camunda melden
           uri:
             url: "http://10.0.2.15:8080/engine-rest/message"
