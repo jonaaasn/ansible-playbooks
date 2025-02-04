@@ -12,6 +12,12 @@
       debug:
         msg: "System for VM ID {{ vm_id }} has been restarted successfully."
 
+    - name: Debug received variables
+      debug:
+        msg:
+          - "✅ VM ID: {{ vm_id | default('NICHT GESETZT') }}"
+          - "✅ Prozess-Instance-ID: {{ process_instance_id | default('NICHT GESETZT') }}"
+
     - name: Signal successful restart to Camunda
       uri:
         url: "http://10.0.2.15:8080/engine-rest/message"
