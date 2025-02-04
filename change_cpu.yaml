@@ -48,6 +48,16 @@
           debug:
             msg: "✅ CPU erfolgreich geändert für VM ID {{ vm_id }} auf {{ value }} Kerne"
 
+        - name: Debug final API Request an Camunda
+          debug:
+            msg:
+              - "📤 Camunda API Request:"
+              - "🔹 URL: http://10.0.2.15:8080/engine-rest/message"
+              - "🔹 messageName: cpu_change_completed"
+              - "🔹 processInstanceId: {{ process_instance_id }}"
+              - "🔹 value: {{ value }} (Typ: {{ value | type_debug }})"
+
+
         - name: Erfolgreiche Änderung an Camunda melden
           uri:
             url: "http://10.0.2.15:8080/engine-rest/message"
