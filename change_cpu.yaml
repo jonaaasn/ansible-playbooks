@@ -67,7 +67,13 @@
             body_format: json
             body:
               messageName: "cpu_change_completed"
-            status_code: 204
+              processInstanceId: "{{ process_instance_id }}"
+              variables:
+                value:
+                  value: "{{ value }}"
+                  type: "Integer"
+              status_code: 204
+
 
       rescue:
         - name: Fehler an Camunda melden
