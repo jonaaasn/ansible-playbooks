@@ -72,7 +72,7 @@
                 value:
                   value: "{{ value }}"
                   type: "Integer"
-              status_code: 204
+            status_code: 204
 
 
       rescue:
