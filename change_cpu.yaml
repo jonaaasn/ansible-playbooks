@@ -70,7 +70,6 @@
             body_format: json
             body:
               messageName: "cpu_change_completed"
-              processInstanceId: "{{ process_instance_id }}"
             status_code: 204
 
 
