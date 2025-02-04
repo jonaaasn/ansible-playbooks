@@ -23,7 +23,6 @@
         msg:
           - "✅ processInstanceId: {{ process_instance_id }}"
           - "✅ value (CPU-Wert): {{ value }} (Typ: {{ value | type_debug }})"
-    
 
     - name: Validate input variables
       fail:
@@ -57,7 +56,6 @@
               - "🔹 processInstanceId: {{ process_instance_id }}"
               - "🔹 value: {{ value }} (Typ: {{ value | type_debug }})"
 
-
         - name: Erfolgreiche Änderung an Camunda melden
           uri:
             url: "http://10.0.2.15:8080/engine-rest/message"
@@ -87,6 +85,14 @@
             body_format: json
             body:
               messageName: "cpu_change_failed"
+              processInstanceId: "{{ process_instance_id }}"
+              variables:
+                vm_id:
+                  value: "{{ vm_id }}"
+                  type: "Integer"
+                value:
+                  value: "{{ value }}"
+                  type: "Integer"
             status_code: 204
 
         - name: Log failure message
