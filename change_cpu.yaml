@@ -71,10 +71,6 @@
             body:
               messageName: "cpu_change_completed"
               processInstanceId: "{{ process_instance_id }}"
-              processVariables:
-                value:
-                  value: {{ value | int }}
-                  type: "Integer"
             status_code: 204
 
 
