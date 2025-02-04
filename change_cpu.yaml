@@ -65,13 +65,7 @@
             body_format: json
             body:
               messageName: "cpu_change_completed"
-              processInstanceId: "{{ process_instance_id }}"
-              processVariables:
-                value:
-                  value: "{{ value | int }}"
-                  type: "Integer"
             status_code: 204
-
 
       rescue:
         - name: Fehler an Camunda melden
@@ -83,14 +77,6 @@
             body_format: json
             body:
               messageName: "cpu_change_failed"
-              processInstanceId: "{{ process_instance_id }}"
-              variables:
-                vm_id:
-                  value: "{{ vm_id }}"
-                  type: "Integer"
-                value:
-                  value: "{{ value }}"
-                  type: "Integer"
             status_code: 204
 
         - name: Log failure message
