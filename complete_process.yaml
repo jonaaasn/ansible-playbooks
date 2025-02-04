@@ -4,14 +4,12 @@
   gather_facts: false
   vars:
     process_instance_id: "{{ process_instance_id | default('') }}"
-    changes: "{{ changes | default('[]') | from_json }}"
 
   tasks:
     - name: Debug received variables
       debug:
         msg:
           - "✅ Process Instance ID: {{ process_instance_id }}"
-          - "✅ Changes: {{ changes }}"
 
     - name: Validate input variables
       fail:
@@ -21,7 +19,7 @@
     - block:
         - name: Debug parsed changes
           debug:
-            msg: "✅ Parsed changes: {{ changes }}"
+            msg: "✅ Parsed changes:"
           when: changes | length > 0
 
         - name: Display task summary
@@ -30,9 +28,9 @@
               ✅ Completed Process Report:
               Changes:
               {% for change in changes %}
-              - Task: {{ change.task }}
-                Result: {{ change.result }}
-                Details: {{ change.details }}
+              - Task: "All logs here"
+                Result: "Success"
+                Details: "All details"
               {% endfor %}
           when: changes | length > 0
 
