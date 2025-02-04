@@ -17,11 +17,6 @@
       when: process_instance_id | trim == ""
 
     - block:
-        - name: Debug parsed changes
-          debug:
-            msg: "✅ Parsed changes:"
-          when: changes | length > 0
-
         - name: Display task summary
           debug:
             msg: |
