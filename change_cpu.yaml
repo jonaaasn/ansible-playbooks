@@ -58,7 +58,8 @@
 
         - name: Debug JSON-Body für Camunda
           debug:
-            msg: "{{ body | to_json }}"
+            msg: "{{ {'messageName': 'cpu_change_completed', 'processInstanceId': process_instance_id, 'processVariables': {'value': {'value': value | int, 'type': 'Integer'}}} | to_nice_json }}"
+
 
         - name: Erfolgreiche Änderung an Camunda melden
           uri:
