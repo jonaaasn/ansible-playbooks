@@ -1,0 +1,49 @@
+---
+- name: Test Playbook - Send Success or Failure Message
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Print success message
+      debug:
+        msg: "✅ Playbook executed successfully."
+
+    - name: Send success message to Camunda
+      uri:
+        url: "http://10.0.2.15:8080/engine-rest/message"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          messageName: "process_completion_completed"
+        status_code: 204
+      register: camunda_response
+      ignore_errors: true
+
+    - name: Print failure message if Camunda response fails
+      debug:
+        msg: "❌ Failed to send success message to Camunda."
+      when: camunda_response.failed
+
+    - name: Force failure for testing
+      fail:
+        msg: "❌ This is a test failure message."
+      when: false  # Ändere auf `true`, wenn du einen Fehler simulieren willst.
+
+    - name: Send failure message to Camunda (if previous tasks failed)
+      uri:
+        url: "http://10.0.2.15:8080/engine-rest/message"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          messageName: "process_completion_failed"
+        status_code: 204
+      when: camunda_response.failed
+      ignore_errors: true
+
+    - name: Print final message
+      debug:
+        msg: "🎯 Playbook finished execution."
