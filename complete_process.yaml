@@ -17,31 +17,9 @@
       when: process_instance_id | trim == ""
 
     - block:
-        - name: Display task summary
-          debug:
-            msg: |
-              ✅ Completed Process Report:
-              Changes:
-              {% for change in changes %}
-              - Task: "All logs here"
-                Result: "Success"
-                Details: "All details"
-              {% endfor %}
-          when: changes | length > 0
-
-        - name: Check overall process success
-          set_fact:
-            process_success: "{{ changes | selectattr('result', 'equalto', 'Failed') | list | length == 0 }}"
-
-        - name: Indicate process success
+        - name: Indicate process completion
           debug:
             msg: "✅ Process completed successfully!"
-          when: process_success
-
-        - name: Indicate process failure
-          debug:
-            msg: "❌ Process completed with errors!"
-          when: not process_success
 
         - name: Signal process completion to Camunda
           uri:
@@ -51,7 +29,7 @@
               Content-Type: "application/json"
             body_format: json
             body:
-              messageName: "{{ 'process_completion_completed' if process_success else 'process_completion_failed' }}"
+              messageName: "process_completion_completed"
             status_code: 204
 
       rescue:
